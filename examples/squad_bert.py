@@ -37,6 +37,12 @@ from pytorch_pretrained_bert.modeling import BertForQuestionAnswering
 from pytorch_pretrained_bert.optimization import BertAdam
 from pytorch_pretrained_bert.file_utils import PYTORCH_PRETRAINED_BERT_CACHE
 
+cur_dir = os.path.dirname(os.path.abspath(__file__))
+models_dir = os.path.join(cur_dir, 'models/pytorch_objects/squad_bert')
+pretrained_path = os.path.join(models_dir,'a803ce83ca27fecf74c355673c434e51c265fb8a3e0e57ac62a80e38ba98d384.681017f415dfb33ec8d0e04fe51a619f3f01532ecea04edbfd48c5d160550d9c')
+tokenizer_path = os.path.join(models_dir,'5e8a2b4893d13790ed4150ca1906be5f7a03d6c4ddf62296c383f6db42814db2.e13dbb970cb325137104fb2e5f36fe865f27746c6b526f6352861b1980eb80b1')
+finetuned_path = os.path.join(models_dir,'pytorch_model.bin')
+
 logging.basicConfig(format = '%(asctime)s - %(levelname)s - %(name)s -   %(message)s',
                     datefmt = '%m/%d/%Y %H:%M:%S',
                     level = logging.INFO)
@@ -964,7 +970,7 @@ class BertSquad(object):
             raise ValueError("Output directory () already exists and is not empty.")
         os.makedirs(self.args.output_dir, exist_ok=True)
 
-        self.tokenizer = BertTokenizer.from_pretrained('tmp/5e8a2b4893d13790ed4150ca1906be5f7a03d6c4ddf62296c383f6db42814db2.e13dbb970cb325137104fb2e5f36fe865f27746c6b526f6352861b1980eb80b1')
+        self.tokenizer = BertTokenizer.from_pretrained(tokenizer_path)
 
         train_examples = None
         num_train_steps = None
@@ -975,9 +981,9 @@ class BertSquad(object):
                 len(train_examples) / self.args.train_batch_size / self.args.gradient_accumulation_steps * self.args.num_train_epochs)
 
         # Prepare model
-        self.model = BertForQuestionAnswering.from_pretrained('tmp/a803ce83ca27fecf74c355673c434e51c265fb8a3e0e57ac62a80e38ba98d384.681017f415dfb33ec8d0e04fe51a619f3f01532ecea04edbfd48c5d160550d9c',
+        self.model = BertForQuestionAnswering.from_pretrained(pretrained_path,
                     cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(self.args.local_rank))
-        self.model.bert.load_state_dict(torch.load('squad/pytorch_model.bin',map_location='cpu'))
+        self.model.bert.load_state_dict(torch.load(finetuned_path,map_location='cpu'))
         if self.args.fp16:
             self.model.half()
         self.model.to(self.device)
@@ -1038,7 +1044,7 @@ class BertSquad(object):
         extracted = extract_result(eval_examples, eval_features, all_results,
                                    self.args.n_best_size, self.args.max_answer_length,
                                    self.args.do_lower_case, self.args.verbose_logging)
-        return extracted['0']
+        return {'result':extracted['0']}
         # output_prediction_file = os.path.join(self.args.output_dir, "predictions.json")
         # output_nbest_file = os.path.join(self.args.output_dir, "nbest_predictions.json")
         # write_predictions(eval_examples, eval_features, all_results,
