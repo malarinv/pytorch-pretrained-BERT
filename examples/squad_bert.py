@@ -977,6 +977,7 @@ class BertSquad(object):
         # Prepare model
         self.model = BertForQuestionAnswering.from_pretrained('tmp/a803ce83ca27fecf74c355673c434e51c265fb8a3e0e57ac62a80e38ba98d384.681017f415dfb33ec8d0e04fe51a619f3f01532ecea04edbfd48c5d160550d9c',
                     cache_dir=PYTORCH_PRETRAINED_BERT_CACHE / 'distributed_{}'.format(self.args.local_rank))
+        self.model.bert.load_state_dict(torch.load('squad/pytorch_model.bin',map_location='cpu'))
         if self.args.fp16:
             self.model.half()
         self.model.to(self.device)
